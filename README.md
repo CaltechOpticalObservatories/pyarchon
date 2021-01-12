@@ -1,37 +1,53 @@
-## Welcome to GitHub Pages
+# pyarchon
 
-You can use the [editor on GitHub](https://github.com/CaltechOpticalObservatories/pyarchon/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+This is a Python interface to Archon using the camera-interface server. It was adapted from CESL (**C**amera **E**xternal **S**cripting **L**anguage) which was initially developed for ZTF. As such, this carries over a lot of ZTF's peculiarities so that old scripts can still be used.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Python Requirements
 
-### Markdown
+pyarchon requires Python 2.7 which is no longer supported but 2.7 compatibility can be achieved with Anaconda. Install Anaconda on your system using the appropriate method (e.g. `sudo apt-get anaconda`). Then create an environment for a 2.7 python package. For example:
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+```
+$ sudo apt-get anaconda
+$ sudo sh /tmp/Anaconda3-2020.11-Linux-x86_64.sh
+$ conda install python=2.7
+$ sudo /opt/anaconda3/bin/conda create –name py2 python=2.7
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+That last command creates an environment named “py2”. You can now activate a Python 2.7 environment using the following command:
 
-### Jekyll Themes
+```
+(base) $ conda activate py2
+(py2) $
+```
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/CaltechOpticalObservatories/pyarchon/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+You are now in a Python 2.7 environment suitable for running pyarchon.
 
-### Support or Contact
+### Using pyarchon
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+From a py2 environment run Python (or iPython) then import the interface as follows:
+
+```
+(py2) $ python
+>>> from pyarchon import interface as cam
+```
+
+Note that `cam` can be anything and is just used as an example here:
+
+```
+>>> help(cam)
+
+Help on module pyarchon.interface in pyarchon:
+
+NAME
+    pyarchon.interface
+
+FILE
+    /home/user/Software/pyarchon/interface.py
+
+FUNCTIONS
+    close()
+        close connection to camera
+    
+```
+etc.
+
