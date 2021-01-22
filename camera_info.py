@@ -21,11 +21,6 @@ class CameraInfo(object):
     of the ztf package. The user should never need to
     look in here.
     """
-    # codes for modes
-    #
-    MODE = { "RAW"    :"raw",
-             "DEFAULT":"default" }
-    MODE_NAME = {v: k for k, v in MODE.iteritems()}
 
     # codes for types
     #
@@ -51,7 +46,7 @@ class CameraInfo(object):
                     "PLIO":3 }
     COMPRESSION_NAME = {v: k for k, v in COMPRESSION.iteritems()}
 
-    def __init__(self, mode=MODE["DEFAULT"], \
+    def __init__(self, mode="DEFAULT", \
                        imtype=TYPE["TEST"],  \
                        basename="",          \
                        compression=COMPRESSION["NONE"], \
@@ -97,7 +92,7 @@ class CameraInfo(object):
         """
         Return the camera mode as a string.
         """
-        return self.MODE_NAME[self.mode]
+        return self.mode
 
     def get_compression_type(self):
         """
@@ -141,7 +136,7 @@ class CameraInfo(object):
         Set the camera mode.
         Allow any mode here. The server will do the error checking.
         """
-        self.mode = self.MODE[mode_in]
+        self.mode = mode_in
         return 0
 
     def set_exptime(self, exptime):

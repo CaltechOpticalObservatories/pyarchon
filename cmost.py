@@ -232,18 +232,13 @@ def set_param(param, value):
 def set_mode(mode_in):
     """
     Set camera mode. 
-    Here for backward-compatibility with ZTF scripts.
-    This has no functionality.
     -------------------------------------------------
     """
-    if mode_in not in caminfo.MODE:
-        print "ERROR: requested mode %s not in list %s" % (mode_in, caminfo.MODE.keys())
-        return 1
 
     old_mode = caminfo.get_mode()
 
     if old_mode != mode_in:
-        error = __send_command("mode", caminfo.MODE[mode_in])[0]
+        error = __send_command("mode", mode_in)[0]
         if not error:
             print "MODE changed: %s -> %s" % (old_mode, mode_in)
             caminfo.set_mode(mode_in)
@@ -567,7 +562,7 @@ def __setup_observation(quiet=False):
     if (error==0):
         error = __send_command("exptime", caminfo.exptime)[0]
     if (error==0):
-        error = __send_command("mode", caminfo.MODE[caminfo.get_mode()])[0]
+        error = __send_command("mode", caminfo.get_mode())[0]
     return error
 
 
