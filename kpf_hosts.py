@@ -16,7 +16,7 @@ __camhost = { 1:"127.0.0.1" }
 # 1-4 are ports for vicd
 #
 camport   = {}
-__camport = { 1:3031 }
+__camport = { 1:3041 }
 #__camport = { 1:62018  ,\
 #              2:62018  ,\
 #              3:62018  ,\

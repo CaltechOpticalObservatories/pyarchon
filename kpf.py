@@ -10,6 +10,7 @@ from IPython.core.debugger import Tracer
 import pdb # use with pdb.set_trace()
 
 import numpy as np
+#import kpf.illuminator as ill  # use this for the illuminator - need to get ip for telnet to illuminator
 
 # Instantiate a global object of the CameraInfo class. This
 # carries default and current camera settings (mode, type, etc.)
@@ -212,13 +213,14 @@ def readparam(paramname):
 # --------------------------------------------------------------------------
 # @fn     set_param
 # --------------------------------------------------------------------------
-def set_param(param, value):
+def set_param(param, value,cameras=[1]):
     """
     set arbitrary parameter
     Args:
         param: parameter to set (in quotes)
         value: new value for parameter
     """
+    open(cameras,doLoad=False,doPowerOn=False,doSetup=False);
     error = __send_command("setp", param, value)[0]
     if (error==0):
          if not __verbose: print "loaded parameter"
@@ -359,9 +361,32 @@ def expose(exptime=0, iterations=1, delay=0):
     This is essentially a macro, calling the following functions on the server:
     expose(), readframe(), and writeframe()
     """
+
+    t0 = time.time();
+    # Can't have a negative exposure time
+
+    if (exptime < 0):
+        print "ERROR: exposure time must be >= 0"
+        return 1
+
+    if (iterations < 1):
+        print "ERROR: iterations must be >= 1"
+        return 1
+
     mode = caminfo.get_mode()
 
+    print "Exptime in expose kpf.py: "
+    print exptime
+
     caminfo.set_exptime(exptime)
+
+#    error = __setup_observation(quiet=True) # steve added this
+
+    iterations=iterations
+
+    print "Load exposure time"
+    error = __send_command("exptime", exptime)[0]
+#    error = __send_command(commands.CAMERA_LOAD_EXPOSURE_TIME, exptime) [0]
 
     print "starting exposure"
     error = __send_command("expose", iterations)[0]
@@ -416,6 +441,18 @@ def __send_command(*arg_list):
         print "ERROR: no connected sockets"
         return 1, ""
 
+    # timeout for long exposure times
+    if ("expose" in arg_list):
+        exptime = caminfo.get_exptime();                   # get the exposure time (msec)
+        #toTime = int (np.ceil ( (10000 + exptime + 0.1 * exptime) / 1000 )); # 10s read + 10% over exptime, convert to integer seconds and round up
+        toTime = int (np.ceil ( (100000 + exptime + 0.1 * exptime) ));
+        toTime = toTime * caminfo.get_iterations()                        # multiply by iterations
+        print "timeout is ", toTime, " seconds"
+    else:
+        toTime = 10                                                       # or 10 sec for all other commands
+
+
+
     # loop through the set of cameras,
     # send command to each in a separate thread
     for ii in hosts.camsocket:
@@ -442,7 +479,7 @@ def __send_command(*arg_list):
         # read the first 4 bytes which give the message length
         while True:
             try:
-                ready = select.select([sendsocket[ii]],[],[],10)
+                ready = select.select([sendsocket[ii]],[],[],100)
             except select.error:
                 print "select error"
                 break
@@ -598,7 +635,7 @@ def __make_bitstring(identifier):
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-def magicboard(acf_file,P_IN, N_IN, P_OUT, N_OUT, iterations=1, readCDS=False, timeit=False,delay=0):
+def magicboard(acf_file,P_IN, N_IN, P_OUT, N_OUT, iterations=1, readCDS=False, timeit=False,delay=0,basename='zzmagic'):
     """Write I/O setup for magic board, then run ACF file Inputs have the
 form ({'driver','dnl','hv[hl]c','adc'},{0..n}).  Channel #'s are
 mod-ed by the number of channels available. IN and OUT are from the
@@ -632,7 +669,7 @@ board's perspective.
         print 'Set type: '
         print error
     if (error==0):
-        error = set_basename('zzmagic')
+        error = set_basename(basename)
         print 'Set basename: '
         print error
     # optional delay time for long startup sequences
@@ -665,7 +702,8 @@ def run(acf_file='none',iterations=1, readCDS=False, exptime=0, timeit=False, ba
         error=1
         print "iterations must be >0"
     if readCDS:
-        runthisode = 'DEFAULT'
+        runthismode = 'DEFAULT'
+        print "I'm assigning DEFAULT mode"
     else:
         runthismode = 'RAW'
 
@@ -681,12 +719,88 @@ def run(acf_file='none',iterations=1, readCDS=False, exptime=0, timeit=False, ba
         error = set_basename(basename)
 
     # perform <iterations> of test "exposures." all exposures go into the same fits file
+    # can we separate out the iterations into their own files?
     expose(exptime, iterations)
 
     if timeit:
         print 'completed in %.2f'%(time.time() - t0)
         
     return error
+
+
+# -----------------------------------------------------------------------------
+# @fn     run_with_illuminator
+# @brief  take an exposure and flash the illuminator
+# 
+# specify the acf file name if you want it to load.
+# ledparams: (ID, current fraction, time[ms])
+# flashes: # of flashes of the LED, negative for continuous on.
+# leddelay: delay in [s] from start of expose command.
+# -----------------------------------------------------------------------------
+def run_with_illuminator(acf_file='none', ledparams=(2,.001,1),
+                         flashes = 1, leddelay = 1.5, readCDS=False,
+                         exptime=1, timeit=False, basename='zztf',ftype='TEST'):
+
+    iterations = 1; ## can't handle multiple iterations yet.
+    if readCDS:
+        runthismode = 'DEFAULT'
+    else:
+        runthismode = 'RAW'
+
+    # illuminator stuff
+    ledid      = ledparams[0];
+    ledcurrent = ledparams[1];
+    ledtime    = ledparams[2];
+#    leds = ill.hover();  # this is not implemented yet for KPF
+#    leds.set(ledid, ledcurrent, ledtime);
+    
+    error = 0
+    set_compression('RICE');  # Can I set this here?  Normally NONE
+    t0 = time.time();
+    # if the parameter acf_file is not set, don't load anything
+    if os.path.isfile(os.path.expanduser(acf_file)): 
+        error = load(acf_file,mode=runthismode)
+    if (error==0):
+        error = set_type(ftype)
+    if (error==0):
+        error = set_basename(basename)
+
+    # perform <iterations> of test "exposures." all exposures go into the same fits file
+
+#    exposethread = threading.Timer(0,cam.expose, (exptime, iterations));
+#    illum_thread = threading.Timer(leddelay, leds.go, (flashes,));
+
+#    exposethread.start();
+#    illum_thread.start();
+
+#    exposethread.join();
+#    illum_thread.join();
+
+    expose(exptime, iterations)  # illuminator not implemented yet for KPF just do an exposure
+
+ #   leds.close();
+    if timeit:
+        print 'completed in %.2f'%(time.time() - t0)
+    
+    return error
+
+
+
+# -----------------------------------------------------------------------------
+# @fn     cds
+# @brief  set / get a cds configuration key
+# 
+# -----------------------------------------------------------------------------
+def cds(configkey, value_in="",):
+    """
+    Set or Get Archon CDS/Deinterlace Configuration Key
+    If the optional value argument is omitted then the specified configkey is read.
+    If value_in is supplied then configkey is set to value_in.
+    """
+
+    error, value_out = __send_command("cds", configkey, value_in)
+
+    return error, value_out
 
 
 # -----------------------------------------------------------------------------

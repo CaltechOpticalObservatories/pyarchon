@@ -429,7 +429,7 @@ def __send_command(*arg_list):
     # timeout for long exposure times
     if ("expose" in arg_list):
         exptime = caminfo.get_exptime()                                   # get the exposure time (msec)
-        toTime = int ( np.ceil ( (10000 + exptime + 0.1 * exptime) / 1000 ) ) # 10s read + 10% over exptime, convert to integer seconds and round up
+        toTime = int ( np.ceil ( (40000 + 1000*exptime + 0.1 * exptime) / 1000 ) ) # 10s read + 10% over exptime, convert to integer seconds and round up
         toTime = toTime * caminfo.get_iterations()                        # multiply by iterations
         print "timeout is ", toTime, " seconds"
     else:
@@ -707,6 +707,24 @@ def run(acf_file='none',iterations=1, readCDS=False, exptime=0, timeit=False, ba
         print 'completed in %.2f'%(time.time() - t0)
         
     return error
+
+
+# -----------------------------------------------------------------------------
+# @fn     cds
+# @brief  set / get a cds configuration key
+# 
+# -----------------------------------------------------------------------------
+def cds(configkey, value_in="",):
+    """
+    Set or Get Archon CDS/Deinterlace Configuration Key
+    If the optional value argument is omitted then the specified configkey is read.
+    If value_in is supplied then configkey is set to value_in.
+    """
+
+    error, value_out = __send_command("cds", configkey, value_in)
+
+    return error, value_out
+
 
 # -----------------------------------------------------------------------------
 # @fn     bias
