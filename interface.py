@@ -86,7 +86,8 @@ def archon_open(hostlist=None, do_load=True, do_power_on=True, do_setup=True):
     # open sockets to camera servers indicated by hostlist
     for ii in hosts.camhost:
         if __verbose:
-            print("connecting to %s: %s" % (hosts.camname[ii], hosts.camport[ii]))
+            print("connecting to %s: %s" %
+                  (hosts.camname[ii], hosts.camport[ii]))
         hosts.camsocket[ii] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         hosts.camsocket[ii].connect((hosts.camhost[ii], hosts.camport[ii]))
 
@@ -514,7 +515,8 @@ def __send_command(*arg_list):
             numokay += 1
         else:
             if __verbose:
-                print("%s not complete, error %d [%s]" % (sendname[ii], error[ii], "error"))
+                print("%s not complete, error %d [%s]" %
+                      (sendname[ii], error[ii], "error"))
 
     # Check that each camera returned the same value.
     # If not, that is an error condition and return a list of the return values
@@ -575,12 +577,14 @@ def __setup_observation(quiet=False):
         error = __send_command("mode", caminfo.get_mode())[0]
     return error
 
-# Code after here is to make the magic board work.  That is, create and write bitstreams
+# Code after here is to make the magic board work.
+# That is, create and write bitstreams
 
 
 # -----------------------------------------------------------------------------
 # @fn     __write_bits(BITSTRING)
-# @brief  writes a bitstring to the magic board serial register where bitstring is a string
+# @brief  writes a bitstring to the magic board serial register where bitstring
+#           is a string
 #         of bits that will be written to the SR in right to left order
 # -----------------------------------------------------------------------------
 def __write_bits(bitstring, verb=True):
@@ -588,7 +592,8 @@ def __write_bits(bitstring, verb=True):
     if verb:
         print("Writing bits:", end=' ')
     for bitlevel in reversed(bitstring):
-        set_param('BitLevel', int(bitlevel)+1)  # set param is now in the same file
+        # set param is now in the same file
+        set_param('BitLevel', int(bitlevel)+1)
         if verb:
             print("%d" % int(bitlevel), end=' ')
     if verb:
@@ -629,7 +634,8 @@ def __make_bitstring(identifier):
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-def magicboard(acf_file, p_in, n_in, p_out, n_out, iterations=1, read_cds=False, timeit=False, delay=0):
+def magicboard(acf_file, p_in, n_in, p_out, n_out, iterations=1, read_cds=False,
+               timeit=False, delay=0):
     """Write I/O setup for magic board, then run ACF file Inputs have the
 form ({'driver','dnl','hv[hl]c','adc'},{0..n}).  Channel #'s are
 mod-ed by the number of channels available. IN and OUT are from the
@@ -637,7 +643,8 @@ board's perspective.
 
     delay: wait time [s] between load and first write bit.
 
-    Note: use 'none' or any invalid file name for "acf_file" to circumvent reloading of the acf.
+    Note: use 'none' or any invalid file name for "acf_file" to circumvent
+            reloading of the acf.
 
     """
     # check number of iterations
@@ -691,7 +698,8 @@ board's perspective.
 # 
 # specify the acf file name if you want it to load.
 # -----------------------------------------------------------------------------
-def run(acf_file='none', iterations=1, read_cds=False, exptime=0, timeit=False, basename='zztf'):
+def run(acf_file='none', iterations=1, read_cds=False, exptime=0, timeit=False,
+        basename='zztf'):
 
     if iterations <= 0:        # check number of iterations
         # error = 1
@@ -712,7 +720,8 @@ def run(acf_file='none', iterations=1, read_cds=False, exptime=0, timeit=False, 
     if error == 0:
         error = set_basename(basename)
 
-    # perform <iterations> of test "exposures." all exposures go into the same fits file
+    # perform <iterations> of test "exposures."
+    # all exposures go into the same fits file
     expose(exptime, iterations)
 
     if timeit:
