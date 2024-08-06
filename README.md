@@ -2,6 +2,9 @@
 
 **pyarchon** is a Python interface to Archon controllers using the camera-interface server. Originally adapted from CESL (**C**amera **E**xternal **S**cripting **L**anguage), it was initially developed for the Zwicky Transient Facility (ZTF). This library retains many of ZTF's unique features to ensure compatibility with existing scripts.
 
+## Reporting Issues
+If you encounter any problems or have questions about this project, please open an issue on the [GitHub Issues page](https://github.com/CaltechOpticalObservatories/pyarchon/issues). Your feedback helps us improve the project!
+
 ## Usage
 To use pyarchon, start Python (or iPython) and import the interface as shown below:
 
