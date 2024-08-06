@@ -8,6 +8,7 @@ from threading import Thread
 from datetime import datetime
 import time
 from numpy import iterable
+
 # from IPython.core.debugger import Tracer
 # import pdb # use with pdb.set_trace()
 
@@ -29,7 +30,7 @@ def verbose(verbosity):
     """
     Enable or disable verbose printing messages, mostly interactions
     between the host and the Archon CCD controlers.
-    
+
     Args:
         verbosity: True or False
     """
@@ -72,7 +73,9 @@ def archon_open(hostlist=None, do_load=True, do_power_on=True, do_setup=True):
     if hostlist is None:
         hostlist = [1]
     if hostlist == "local":
-        hostlist = [hosts.__emanmac["localhost"],]
+        hostlist = [
+            hosts.__emanmac["localhost"],
+        ]
 
     if not iterable(hostlist):
         hostlist = [hostlist]
@@ -136,13 +139,12 @@ def close():
     error = __send_command("close")[0]
 
     # then close sockets to camera servers that were opened.
-    # 
-    if not hosts.camsocket:    # but not if nothing is defined
+    #
+    if not hosts.camsocket:  # but not if nothing is defined
         return
     for h in hosts.camhost:
         if __verbose:
-            print("closing connection to %s: %s" %
-                  (hosts.camname[h], hosts.camhost[h]))
+            print("closing connection to %s: %s" % (hosts.camname[h], hosts.camhost[h]))
         hosts.camsocket[h].close()
         del hosts.camsocket[h]
     if error == 0:
@@ -202,7 +204,7 @@ def load(acffile, mode="DEFAULT", basename="", imtype="TEST", power="ON"):
 def readparam(paramname):
     """
     Read a parameter directly from Archon configuration memory.
-    
+
     Args:
         paramname
     Returns:
@@ -245,7 +247,7 @@ def set_param(param, value):
 # --------------------------------------------------------------------------
 def set_mode(mode_in):
     """
-    Set camera mode. 
+    Set camera mode.
     -------------------------------------------------
     """
 
@@ -277,10 +279,10 @@ def set_type(imtype):
     old_type = caminfo.get_type()
     if old_type != imtype:
         error = caminfo.set_type(imtype)
-#       if not error:
-#           error = __setup_observation(quiet=True)
-#       if not error:
-#           print "IMAGE TYPE changed: %s -> %s"%(old_type,imtype)
+    #       if not error:
+    #           error = __setup_observation(quiet=True)
+    #       if not error:
+    #           print "IMAGE TYPE changed: %s -> %s"%(old_type,imtype)
     else:
         error = 0
     return error
@@ -350,26 +352,26 @@ def set_compression(ctype, *noisebits):
         pass
     if noisebits:
         pass
-#   if noisebits:
-#       noisebits = int(noisebits[0])
-#   else:
-#       noisebits = caminfo.get_compression_noisebits()
+    #   if noisebits:
+    #       noisebits = int(noisebits[0])
+    #   else:
+    #       noisebits = caminfo.get_compression_noisebits()
 
-#   old_type      = caminfo.get_compression_type()
-#   old_noisebits = caminfo.get_compression_noisebits()
+    #   old_type      = caminfo.get_compression_type()
+    #   old_noisebits = caminfo.get_compression_noisebits()
 
-#   if (old_type != ctype) or (old_noisebits != noisebits):
-#       error = caminfo.set_compression(type, noisebits)
-#       if not error:
-#           error = __send_command(commands.FITS_COMPRESSION,
-#                                  caminfo.compression,
-#                                  caminfo.noisebits)[0]
-#       if not error:
-#           print "COMPRESSION changed: %s,%s -> %s,%s" %
-#              (old_type, old_noisebits, ctype, noisebits)
-#   else:
-#       error = 0
-#   return error
+    #   if (old_type != ctype) or (old_noisebits != noisebits):
+    #       error = caminfo.set_compression(type, noisebits)
+    #       if not error:
+    #           error = __send_command(commands.FITS_COMPRESSION,
+    #                                  caminfo.compression,
+    #                                  caminfo.noisebits)[0]
+    #       if not error:
+    #           print "COMPRESSION changed: %s,%s -> %s,%s" %
+    #              (old_type, old_noisebits, ctype, noisebits)
+    #   else:
+    #       error = 0
+    #   return error
     return 0
 
 
@@ -412,8 +414,10 @@ def expose(exptime=0, iterations=1):
 def __send_threaded_command(hostnum, command):
     global __verbose
     if __verbose:
-        print("sending \"%s\" to %s (%s)" %
-              (command, hosts.camname[hostnum], hosts.camhost[hostnum]))
+        print(
+            'sending "%s" to %s (%s)'
+            % (command, hosts.camname[hostnum], hosts.camhost[hostnum])
+        )
     try:
         hosts.camsocket[hostnum].sendall(command.encode())
     except:
@@ -434,9 +438,9 @@ def __send_command(*arg_list):
     # stopwatch.append(time.time())
     global __verbose
     # endchar = '\n'
-    numcams = 0                     # number of cameras in the set
-    numcomplete = 0                 # number of cameras reported complete
-    numokay = 0                     # number of cameras reported without error
+    numcams = 0  # number of cameras in the set
+    numcomplete = 0  # number of cameras reported complete
+    numokay = 0  # number of cameras reported without error
     threads = []
     sendsocket = []
     sendname = []
@@ -445,7 +449,7 @@ def __send_command(*arg_list):
     command = []
     for arg in arg_list:
         command.append(str(arg))
-    command = ' '.join(command)
+    command = " ".join(command)
 
     if not hosts.camsocket:
         print("ERROR: no connected sockets")
@@ -456,12 +460,12 @@ def __send_command(*arg_list):
         # get the exposure time (msec)
         exptime = caminfo.get_exptime()
         # 10s read + 10% over exptime, convert to integer seconds and round up
-        to_time = int(np.ceil((40000 + 1000*exptime + 0.1 * exptime) / 1000))
+        to_time = int(np.ceil((40000 + 1000 * exptime + 0.1 * exptime) / 1000))
         # multiply by iterations
         to_time = to_time * caminfo.get_iterations()
         print("timeout is ", to_time, " seconds")
     else:
-        to_time = 10                                                       # or 10 sec for all other commands
+        to_time = 10  # or 10 sec for all other commands
 
     # loop through the set of cameras,
     # send command to each in a separate thread
@@ -514,17 +518,17 @@ def __send_command(*arg_list):
         # Create a list of the return values from each camera
         returnlist.append(returnvalue)
 
-#       # pick apart the message to get just the error number
-#       # (sometimes the error value is empty, so catch ValueError)
-#       if (len(dat[ii][0].split()) >= 3):
-#           try:
-#               error[ii] = int( dat[ii][0].split()[2] )
-#           except ValueError:
-#               error[ii] = 1
+        #       # pick apart the message to get just the error number
+        #       # (sometimes the error value is empty, so catch ValueError)
+        #       if (len(dat[ii][0].split()) >= 3):
+        #           try:
+        #               error[ii] = int( dat[ii][0].split()[2] )
+        #           except ValueError:
+        #               error[ii] = 1
 
         # is the word "DONE" somewhere in the response?
-        complete = ''.join(dat[ii]).find("DONE")
-#       pdb.set_trace()
+        complete = "".join(dat[ii]).find("DONE")
+        #       pdb.set_trace()
         if complete >= 0:
             if __verbose:
                 print("%s complete" % sendname[ii])
@@ -534,12 +538,15 @@ def __send_command(*arg_list):
             numokay += 1
         else:
             if __verbose:
-                print("%s not complete, error %d [%s]" % (sendname[ii], error[ii], "error"))
+                print(
+                    "%s not complete, error %d [%s]"
+                    % (sendname[ii], error[ii], "error")
+                )
 
     # Check that each camera returned the same value.
     # If not, that is an error condition and return a list of the return values
     for i in range(len(returnlist)):
-        for j in range(i+1, len(returnlist)):
+        for j in range(i + 1, len(returnlist)):
             if returnlist[i] != returnlist[j]:
                 numcams = -1
 
@@ -598,6 +605,7 @@ def __setup_observation(quiet=False):
 
 # Code after here is to make the magic board work.  That is, create and write bitstreams
 
+
 # -----------------------------------------------------------------------------
 # @fn     __write_bits(BITSTRING)
 # @brief  writes a bitstring to the magic board serial register where bitstring is a string
@@ -606,11 +614,11 @@ def __setup_observation(quiet=False):
 def __write_bits(bitstring, verb=True):
     # '10111001010011010'
     if verb:
-        print("Writing bits:", end=' ')
+        print("Writing bits:", end=" ")
     for bitlevel in reversed(bitstring):
-        set_param('BitLevel', int(bitlevel)+1)  # set param is now in the same file
+        set_param("BitLevel", int(bitlevel) + 1)  # set param is now in the same file
         if verb:
-            print("%d" % int(bitlevel), end=' ')
+            print("%d" % int(bitlevel), end=" ")
     if verb:
         print("")
     return
@@ -626,18 +634,18 @@ def __write_bits(bitstring, verb=True):
 def __make_bitstring(identifier):
 
     (NAME, chan) = identifier
-    
-    if NAME.lower() == 'driver':
+
+    if NAME.lower() == "driver":
         return "{0:06b}".format(np.mod(chan, 24))
-    elif NAME.lower() == 'dnl':
+    elif NAME.lower() == "dnl":
         return "{0:06b}".format(24)
-    elif NAME.lower() == 'hvlc':
+    elif NAME.lower() == "hvlc":
         return "{0:06b}".format(32 + np.mod(chan, 24))
-    elif NAME.lower() == 'hvhc':
+    elif NAME.lower() == "hvhc":
         return "{0:06b}".format(56 + np.mod(chan, 6))
-    elif NAME.lower() == 'adc':
-        return "{0:016b}".format(2**np.mod(chan, 16))
-    elif NAME.lower() == 'null':
+    elif NAME.lower() == "adc":
+        return "{0:016b}".format(2 ** np.mod(chan, 16))
+    elif NAME.lower() == "null":
         if chan == 16:
             return "{0:016b}".format(0)
         else:
@@ -649,15 +657,25 @@ def __make_bitstring(identifier):
 
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
-def magicboard(acf_file, p_in, n_in, p_out, n_out, iterations=1, read_cds=False, timeit=False, delay=0):
+def magicboard(
+    acf_file,
+    p_in,
+    n_in,
+    p_out,
+    n_out,
+    iterations=1,
+    read_cds=False,
+    timeit=False,
+    delay=0,
+):
     """Write I/O setup for magic board, then run ACF file Inputs have the
-form ({'driver','dnl','hv[hl]c','adc'},{0..n}).  Channel #'s are
-mod-ed by the number of channels available. IN and OUT are from the
-board's perspective.
+    form ({'driver','dnl','hv[hl]c','adc'},{0..n}).  Channel #'s are
+    mod-ed by the number of channels available. IN and OUT are from the
+    board's perspective.
 
-    delay: wait time [s] between load and first write bit.
+        delay: wait time [s] between load and first write bit.
 
-    Note: use 'none' or any invalid file name for "acf_file" to circumvent reloading of the acf.
+        Note: use 'none' or any invalid file name for "acf_file" to circumvent reloading of the acf.
 
     """
     # check number of iterations
@@ -665,36 +683,36 @@ board's perspective.
         print("iterations must be >=0")
 
     if read_cds:
-        runthismode = 'DEFAULT'
+        runthismode = "DEFAULT"
     else:
-        runthismode = 'RAW'
+        runthismode = "RAW"
 
     error = 0
-    set_compression('NONE')  # set_compression is now in the same file
+    set_compression("NONE")  # set_compression is now in the same file
 
-    if os.path.isfile(os.path.expanduser(acf_file)): 
+    if os.path.isfile(os.path.expanduser(acf_file)):
         error = load(acf_file, mode=runthismode)  # load in now in same file
     if error:
         print("ztf.camera.load('%s') failed" % acf_file)
         return error
     if error == 0:
-        error = set_type('TEST')
-        print('Set type: ')
+        error = set_type("TEST")
+        print("Set type: ")
         print(error)
     if error == 0:
-        error = set_basename('zzmagic')
-        print('Set basename: ')
+        error = set_basename("zzmagic")
+        print("Set basename: ")
         print(error)
     # optional delay time for long startup sequences
     time.sleep(delay)
 
     # write to the magic board to configure I/O
     t0 = time.time()
-    __write_bits(__make_bitstring(p_in))   # +
-    __write_bits(__make_bitstring(n_in))   # +
+    __write_bits(__make_bitstring(p_in))  # +
+    __write_bits(__make_bitstring(n_in))  # +
     __write_bits(__make_bitstring(p_out))  # +
     __write_bits(__make_bitstring(n_out))  # +
-    __write_bits('0100')  # junk bits
+    __write_bits("0100")  # junk bits
     if timeit:
         tf = time.time()
         print("Time to write 48 bits: %.3f sec" % (tf - t0))
@@ -707,26 +725,33 @@ board's perspective.
 # -----------------------------------------------------------------------------
 # @fn     run
 # @brief  take an exposure
-# 
+#
 # specify the acf file name if you want it to load.
 # -----------------------------------------------------------------------------
-def run(acf_file='none', iterations=1, read_cds=False, exptime=0, timeit=False, basename='zztf'):
+def run(
+    acf_file="none",
+    iterations=1,
+    read_cds=False,
+    exptime=0,
+    timeit=False,
+    basename="zztf",
+):
 
-    if iterations <= 0:        # check number of iterations
+    if iterations <= 0:  # check number of iterations
         print("iterations must be >0")
     if read_cds:
-        runthismode = 'DEFAULT'
+        runthismode = "DEFAULT"
     else:
-        runthismode = 'RAW'
+        runthismode = "RAW"
 
     error = 0
-    set_compression('NONE')
+    set_compression("NONE")
     t0 = time.time()
     # if the parameter acf_file is not set, don't load anything
-    if os.path.isfile(os.path.expanduser(acf_file)): 
+    if os.path.isfile(os.path.expanduser(acf_file)):
         error = load(acf_file, mode=runthismode)
     if error == 0:
-        error = set_type('TEST')
+        error = set_type("TEST")
     if error == 0:
         error = set_basename(basename)
 
@@ -734,7 +759,7 @@ def run(acf_file='none', iterations=1, read_cds=False, exptime=0, timeit=False, 
     expose(exptime, iterations)
 
     if timeit:
-        print('completed in %.2f' % (time.time() - t0))
+        print("completed in %.2f" % (time.time() - t0))
 
     return error
 
@@ -742,9 +767,12 @@ def run(acf_file='none', iterations=1, read_cds=False, exptime=0, timeit=False, 
 # -----------------------------------------------------------------------------
 # @fn     cds
 # @brief  set / get a cds configuration key
-# 
+#
 # -----------------------------------------------------------------------------
-def cds(configkey, value_in="",):
+def cds(
+    configkey,
+    value_in="",
+):
     """
     Set or Get Archon CDS/Deinterlace Configuration Key
     If the optional value argument is omitted then the specified configkey is read.
@@ -759,7 +787,7 @@ def cds(configkey, value_in="",):
 # -----------------------------------------------------------------------------
 # @fn     bias
 # @brief  set a bias voltage
-# 
+#
 # -----------------------------------------------------------------------------
 def bias(module, channel, volts_in=""):
     """
@@ -775,20 +803,23 @@ def bias(module, channel, volts_in=""):
     # when setting the volts, the response is DONE or ERROR
     # in which case set volts_out appropriately:
     #
-    if volts_out == 'DONE':
+    if volts_out == "DONE":
         volts_out = volts_in
-    if volts_out == 'ERROR':
+    if volts_out == "ERROR":
         volts_out = np.nan
 
-    print("module %d chan %d is %.6f volts" % (int(module), int(channel), float(volts_out)))
+    print(
+        "module %d chan %d is %.6f volts"
+        % (int(module), int(channel), float(volts_out))
+    )
 
     return error, float(volts_out)
 
 
 # -----------------------------------------------------------------------------
 # @fn     setled
-# @brief  
-# 
+# @brief
+#
 # -----------------------------------------------------------------------------
 def setled(volts_in):
     """
@@ -802,8 +833,8 @@ def setled(volts_in):
 
 # -----------------------------------------------------------------------------
 # @fn     key
-# @brief  
-# 
+# @brief
+#
 # -----------------------------------------------------------------------------
 def key(key_in=""):
     """
