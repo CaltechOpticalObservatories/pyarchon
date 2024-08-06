@@ -18,7 +18,7 @@ __camport = {1: 3051}
 #
 camname = {}
 __camname = {1: "localhost"}
-__emanmac = {v: k for k, v in __camname.items()}
+__emanmac = {v: k for k, v in list(__camname.items())}
 
 # dictionary for camera sockets
 #

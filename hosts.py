@@ -30,7 +30,7 @@ __camname = {1: "localhost"}
 #              2: "camera2",
 #              3: "camera3",
 #              4: "camera4"}
-__emanmac = {v: k for k, v in __camname.items()}
+__emanmac = {v: k for k, v in list(__camname.items())}
 
 # dictionary for camera sockets
 #
