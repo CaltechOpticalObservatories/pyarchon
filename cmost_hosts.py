@@ -23,4 +23,4 @@ __emanmac = {v: k for k, v in list(__camname.items())}
 # dictionary for camera sockets
 #
 camsocket = {}
-__camsocket = {1: ''}
+__camsocket = {1: ""}
