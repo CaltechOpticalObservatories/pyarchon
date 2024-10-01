@@ -1,6 +1,6 @@
 # --------------------------------------------------------------------------
 # @file:     camera_info.py
-# @brief:    CameraInfo class for the ztf package, see CIN #680
+# @brief:    CameraInfo class
 # @author:   David Hale <dhale@caltech.edu>
 # @date:     2017-02-15
 # @modified: 2017-02-22 DH allow basename=""
