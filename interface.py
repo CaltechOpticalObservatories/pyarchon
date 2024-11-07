@@ -1,32 +1,30 @@
-import hosts
-from camera_info import CameraInfo
-
+"""Main interface."""
 import socket
 import select
 import os
 from threading import Thread
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 from numpy import iterable
-
+import numpy as np
 # from IPython.core.debugger import Tracer
 # import pdb # use with pdb.set_trace()
 
-import numpy as np
-
+import hosts
+from camera_info import CameraInfo
 # Instantiate a global object of the CameraInfo class. This
 # carries default and current camera settings (mode, type, etc.)
 #
 caminfo = CameraInfo()
 
 # the default verbose level. Extremely verbose when True.
-__verbose = False
+__VERBOSE = False
 
 
 # --------------------------------------------------------------------------
 # @fn     verbose
 # --------------------------------------------------------------------------
-def verbose(verbosity):
+def set_verbosity(verbosity):
     """
     Enable or disable verbose printing messages, mostly interactions
     between the host and the Archon CCD controlers.
@@ -34,9 +32,9 @@ def verbose(verbosity):
     Args:
         verbosity: True or False
     """
-    global __verbose
-    __verbose = verbosity
-    if __verbose:
+    global __VERBOSE
+    __VERBOSE = verbosity
+    if __VERBOSE:
         print("verbose is on")
 
 
@@ -59,7 +57,8 @@ def print_settings():
 # --------------------------------------------------------------------------
 # @fn     archon_open
 # --------------------------------------------------------------------------
-def archon_open(hostlist=None, do_load=True, do_power_on=True, do_setup=True):
+def archon_open(hostlist=None, do_load=True, do_power_on=True, do_setup=True,
+                verbose=__VERBOSE):
     """
     Open connection to camera and initialize CCD controllers using the
     default parameters specified in the archon.cfg configuration
@@ -68,30 +67,22 @@ def archon_open(hostlist=None, do_load=True, do_power_on=True, do_setup=True):
     default, this opens connections to all hosts (cameras 1-4).  To
     open only to the local host, use hostlist='local'
     """
-    global __verbose
 
     if hostlist is None:
         hostlist = [1]
     if hostlist == "local":
-        hostlist = [
-            hosts.__emanmac["localhost"],
-        ]
+        hostlist = ["localhost",]
 
     if not iterable(hostlist):
         hostlist = [hostlist]
 
-    for ii in hostlist:
-        hosts.camname[ii] = hosts.__camname[ii]
-        hosts.camhost[ii] = hosts.__camhost[ii]
-        hosts.camport[ii] = hosts.__camport[ii]
-        hosts.camsocket[ii] = hosts.__camsocket[ii]
-
     # open sockets to camera servers indicated by hostlist
-    for ii in hosts.camhost:
-        if __verbose:
-            print("connecting to %s: %s" % (hosts.camname[ii], hosts.camport[ii]))
-        hosts.camsocket[ii] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        hosts.camsocket[ii].connect((hosts.camhost[ii], hosts.camport[ii]))
+    for host in hosts.camhost:
+        if verbose:
+            print("connecting to %s: %s" % (hosts.camname[host],
+                                            hosts.camport[host]))
+        hosts.camsocket[host] = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        hosts.camsocket[host].connect((hosts.camhost[host], hosts.camport[host]))
 
     error = __send_command("open")[0]
 
@@ -128,11 +119,10 @@ def archon_open(hostlist=None, do_load=True, do_power_on=True, do_setup=True):
 # --------------------------------------------------------------------------
 # @fn     close
 # --------------------------------------------------------------------------
-def close():
+def close(verbose=__VERBOSE):
     """
     close connection to camera
     """
-    global __verbose
 
     # send the camera close command to each host
     #
@@ -142,11 +132,12 @@ def close():
     #
     if not hosts.camsocket:  # but not if nothing is defined
         return
-    for h in hosts.camhost:
-        if __verbose:
-            print("closing connection to %s: %s" % (hosts.camname[h], hosts.camhost[h]))
-        hosts.camsocket[h].close()
-        del hosts.camsocket[h]
+    for host in hosts.camhost:
+        if verbose:
+            print("closing connection to %s: %s" % (hosts.camname[host],
+                                                    hosts.camhost[host]))
+        hosts.camsocket[host].close()
+        del hosts.camsocket[host]
     if error == 0:
         print("camera closed")
 
@@ -160,7 +151,6 @@ def load(acffile, mode="DEFAULT", basename="", imtype="TEST", power="ON"):
     """
     load ACF file
     """
-    global __verbose
 
     print("DEBUG: load() incomming mode=", mode)
 
@@ -226,7 +216,7 @@ def readparam(paramname):
 # --------------------------------------------------------------------------
 # @fn     set_param
 # --------------------------------------------------------------------------
-def set_param(param, value):
+def set_param(param, value, verbose=__VERBOSE):
     """
     set arbitrary parameter
     Args:
@@ -235,7 +225,7 @@ def set_param(param, value):
     """
     error = __send_command("setp", param, value)[0]
     if error == 0:
-        if not __verbose:
+        if not verbose:
             print("loaded parameter")
     else:
         print("error loading parameter (%s=%d)" % (param, value))
@@ -401,9 +391,8 @@ def expose(exptime=0, iterations=1):
 #
 # This is an internal package function, not meant to be called by the user.
 # --------------------------------------------------------------------------
-def __send_threaded_command(hostnum, command):
-    global __verbose
-    if __verbose:
+def __send_threaded_command(hostnum, command, verbose=__VERBOSE):
+    if verbose:
         print(
             'sending "%s" to %s (%s)'
             % (command, hosts.camname[hostnum], hosts.camhost[hostnum])
@@ -423,14 +412,14 @@ def __send_threaded_command(hostnum, command):
 # a return value. If calling where a returnvalue is not expected, then call
 # with error=__send_command(...)[0] (for example).
 # --------------------------------------------------------------------------
-def __send_command(*arg_list):
+def __send_command(*arg_list, verbose=__VERBOSE):
     # stopwatch = []
     # stopwatch.append(time.time())
-    global __verbose
     # endchar='\n'
     numcams = 0  # number of cameras in the set
     numcomplete = 0  # number of cameras reported complete
     numokay = 0  # number of cameras reported without error
+    errno = 0   # error number: 0 - no error
     threads = []
     sendsocket = []
     sendname = []
@@ -447,14 +436,14 @@ def __send_command(*arg_list):
 
     # loop through the set of cameras,
     # send command to each in a separate thread
-    for ii in hosts.camsocket:
+    for csock in hosts.camsocket:
         # create list by socket and name of cameras that are sent a command
-        print(hosts.camsocket[ii])
-        sendsocket.append(hosts.camsocket[ii])
-        sendname.append(hosts.camname[ii])
+        print(hosts.camsocket[csock])
+        sendsocket.append(hosts.camsocket[csock])
+        sendname.append(hosts.camname[csock])
         # count up the number of cameras that are sent a command
         numcams += 1
-        thr = Thread(target=__send_threaded_command, args=(ii, command))
+        thr = Thread(target=__send_threaded_command, args=(csock, command))
         thr.start()
         threads.append(thr)
 
@@ -465,7 +454,7 @@ def __send_command(*arg_list):
     # loop through the set of cameras to which a command was sent,
     # and read back the replies
     returnvalue = None
-    for ii in range(0, numcams):
+    for cam in range(0, numcams):
         dat = {}
         error = {}
         message = []
@@ -473,13 +462,13 @@ def __send_command(*arg_list):
         # read the first 4 bytes which give the message length
         while True:
             try:
-                ready = select.select([sendsocket[ii]], [], [], 10)
+                ready = select.select([sendsocket[cam]], [], [], 10)
                 print(numcams)
             except select.error:
                 print("select error")
                 break
             if ready[0]:
-                ret = sendsocket[ii].recv(1024).decode()
+                ret = sendsocket[cam].recv(1024).decode()
             else:
                 print("select timeout")
                 message.append("\n")
@@ -489,10 +478,10 @@ def __send_command(*arg_list):
                 break
 
         # dat contains the entire message
-        dat[ii] = message
+        dat[cam] = message
 
         #       pdb.set_trace()
-        returnvalue = dat[ii][0].split()[0]
+        returnvalue = dat[cam][0].split()[0]
 
         # Create a list of the return values from each camera
         returnlist.append(returnvalue)
@@ -506,27 +495,27 @@ def __send_command(*arg_list):
         #               error[ii] = 1
 
         # is the word "DONE" somewhere in the response?
-        complete = "".join(dat[ii]).find("DONE")
+        complete = "".join(dat[cam]).find("DONE")
         #       pdb.set_trace()
         if complete >= 0:
-            if __verbose:
-                print("%s complete" % sendname[ii])
+            if verbose:
+                print("%s complete" % sendname[cam])
             # increment number reported complete
             numcomplete += 1
             # increment number reported without error
             numokay += 1
         else:
-            if __verbose:
+            if verbose:
                 print(
                     "%s not complete, error %d [%s]"
-                    % (sendname[ii], error[ii], "error")
+                    % (sendname[cam], error[cam], "error")
                 )
 
     # Check that each camera returned the same value.
     # If not, that is an error condition and return a list of the return values
-    for i in range(len(returnlist)):
+    for i, ret in enumerate(returnlist):
         for j in range(i + 1, len(returnlist)):
-            if returnlist[i] != returnlist[j]:
+            if ret != returnlist[j]:
                 numcams = -1
 
     # stopwatch.append(time.time())
@@ -538,17 +527,23 @@ def __send_command(*arg_list):
 
     # number of completes-without-error must equal number of cameras
     if numcams == numokay:
-        if not __verbose:
+        if verbose:
             print("OK")
-        return 0, returnvalue
+        ret = returnvalue
+
     # return a list of the return values, if not all the same
     elif numcams == -1:
         print("error: different return values")
-        return 1, returnlist
+        errno = 1
+        ret = returnlist
+
+    # something went wrong
     else:
         print("error sending command")
-        return 1, ""
+        errno = 1
+        ret = ""
 
+    return errno, ret
 
 # --------------------------------------------------------------------------
 # @fn     __setup_observation
@@ -567,7 +562,7 @@ def __setup_observation(quiet=False):
     # if "basename" is empty (note that image_name can never be empty).
     # If basename is not empty then the timestamp is added to it.
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
     if caminfo.get_basename() != "":
         image_name = caminfo.get_basename() + "_" + timestamp
@@ -592,19 +587,17 @@ def __setup_observation(quiet=False):
 #           is a string
 #         of bits that will be written to the SR in right to left order
 # -----------------------------------------------------------------------------
-def __write_bits(bitstring, verb=True):
+def __write_bits(bitstring, verbose=True):
     # '10111001010011010'
-    if verb:
+    if verbose:
         print("Writing bits:", end=" ")
     for bitlevel in reversed(bitstring):
         # set param is now in the same file
         set_param("BitLevel", int(bitlevel) + 1)
-        if verb:
+        if verbose:
             print("%d" % int(bitlevel), end=" ")
-    if verb:
+    if verbose:
         print("")
-    return
-
 
 # -----------------------------------------------------------------------------
 # @fn     __make_bitstring(identifier)
@@ -615,26 +608,28 @@ def __write_bits(bitstring, verb=True):
 # -----------------------------------------------------------------------------
 def __make_bitstring(identifier):
 
-    (NAME, chan) = identifier
+    (name, chan) = identifier
+    ret = "0"
 
-    if NAME.lower() == "driver":
-        return "{0:06b}".format(np.mod(chan, 24))
-    elif NAME.lower() == "dnl":
-        return "{0:06b}".format(24)
-    elif NAME.lower() == "hvlc":
-        return "{0:06b}".format(32 + np.mod(chan, 24))
-    elif NAME.lower() == "hvhc":
-        return "{0:06b}".format(56 + np.mod(chan, 6))
-    elif NAME.lower() == "adc":
-        return "{0:016b}".format(2 ** np.mod(chan, 16))
-    elif NAME.lower() == "null":
+    if name.lower() == "driver":
+        ret = "{0:06b}".format(np.mod(chan, 24))
+    elif name.lower() == "dnl":
+        ret = "{0:06b}".format(24)
+    elif name.lower() == "hvlc":
+        ret = "{0:06b}".format(32 + np.mod(chan, 24))
+    elif name.lower() == "hvhc":
+        ret = "{0:06b}".format(56 + np.mod(chan, 6))
+    elif name.lower() == "adc":
+        ret = "{0:016b}".format(2 ** np.mod(chan, 16))
+    elif name.lower() == "null":
         if chan == 16:
-            return "{0:016b}".format(0)
+            ret = "{0:016b}".format(0)
         else:
-            return "{0:06b}".format(25)
+            ret = "{0:06b}".format(25)
     else:
         print("Unrecognized identifier name in __make_bitstring.  returning 0")
-        return "0"
+
+    return ret
 
 
 # -----------------------------------------------------------------------------
@@ -691,15 +686,14 @@ def magicboard(
     time.sleep(delay)
 
     # write to the magic board to configure I/O
-    t0 = time.time()
+    time_0 = time.time()
     __write_bits(__make_bitstring(p_in))  # +
     __write_bits(__make_bitstring(n_in))  # +
     __write_bits(__make_bitstring(p_out))  # +
     __write_bits(__make_bitstring(n_out))  # +
     __write_bits("0100")  # junk bits
     if timeit:
-        tf = time.time()
-        print("Time to write 48 bits: %.3f sec" % (tf - t0))
+        print("Time to write 48 bits: %.3f sec" % (time.time() - time_0))
 
     expose(0, iterations)  # expose is now in same file
 
@@ -731,7 +725,7 @@ def run(
 
     error = 0
     set_compression("NONE")
-    t0 = time.time()
+    time_0 = time.time()
     # if the parameter acf_file is not set, don't load anything
     if os.path.isfile(os.path.expanduser(acf_file)):
         error = load(acf_file, mode=runthismode)
@@ -745,6 +739,6 @@ def run(
     expose(exptime, iterations)
 
     if timeit:
-        print("completed in %.2f" % (time.time() - t0))
+        print("completed in %.2f" % (time.time() - time_0))
 
     return error

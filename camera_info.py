@@ -9,7 +9,7 @@
 # The CameraInfo class stores and retrieves current settings for
 # the camera module of the ztf package.
 # --------------------------------------------------------------------------
-class CameraInfo(object):
+class CameraInfo():
     """
     This is the CameraInfo class, which is used to store
     and retrieve current settings, in particular the
