@@ -416,7 +416,7 @@ def __send_threaded_command(hostnum, command, verbose=__VERBOSE):
 def __send_command(*arg_list, verbose=__VERBOSE):
     # stopwatch = []
     # stopwatch.append(time.time())
-    # endchar='\n'
+    endchar='\n'
     numcams = 0  # number of cameras in the set
     numcomplete = 0  # number of cameras reported complete
     numokay = 0  # number of cameras reported without error
@@ -429,7 +429,7 @@ def __send_command(*arg_list, verbose=__VERBOSE):
     command = []
     for arg in arg_list:
         command.append(str(arg))
-    command = " ".join(command)
+    command = " ".join(command) + endchar
 
     if not hosts.camsocket:
         print("ERROR: no connected sockets")

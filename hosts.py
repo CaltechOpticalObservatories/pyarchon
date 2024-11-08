@@ -15,39 +15,34 @@ camsocket is the socket for each server connection.
 
 # dictionary for the camera host IP addresses
 #
-# camhost = {}
 camhost = {1: "127.0.0.1"}
 # camhost = {1: "192.168.1.3",
-#              2: "192.168.1.4",
-#              3: "192.168.1.5",
-#              4: "192.168.1.6"}
+#            2: "192.168.1.4",
+#            3: "192.168.1.5",
+#            4: "192.168.1.6"}
 
 # dictionary for the camera host ports
 # 0 is port for guided
 # 1-4 are ports for vicd
 #
-# camport = {}
-camport = {1: 3051}
+camport = {1: 3031}
 # camport = {1: 62018,
-#              2: 62018,
-#              3: 62018,
-#              4: 62018}
+#            2: 62018,
+#            3: 62018,
+#            4: 62018}
 
 # dictionary for human-readable camera names
 #
-# camname = {}
 camname = {1: "localhost"}
 # camname = {1: "camera1",
-#              2: "camera2",
-#              3: "camera3",
-#              4: "camera4"}
-#__emanmac = {v: k for k, v in list(__camname.items())}
+#            2: "camera2",
+#            3: "camera3",
+#            4: "camera4"}
 
 # dictionary for camera sockets
 #
-# camsocket = {}
 camsocket = {1: ""}
 # camsocket = {1: '',
-#                2: '',
-#                3: '',
-#                4: ''}
+#              2: '',
+#              3: '',
+#              4: ''}
