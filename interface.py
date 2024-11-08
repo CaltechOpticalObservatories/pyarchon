@@ -394,8 +394,9 @@ def expose(exptime=0, iterations=1):
 def __send_threaded_command(hostnum, command, verbose=__VERBOSE):
     if verbose:
         print(
-            'sending "%s" to %s (%s)'
-            % (command, hosts.camname[hostnum], hosts.camhost[hostnum])
+            'sending "%s" to %s (%s, %d)'
+            % (command, hosts.camname[hostnum], hosts.camhost[hostnum],
+               hosts.camport[hostnum])
         )
     try:
         hosts.camsocket[hostnum].sendall(command.encode())
